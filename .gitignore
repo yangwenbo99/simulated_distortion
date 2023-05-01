@@ -187,3 +187,7 @@ tmp/
 *.ipynb
 
 new_file_0
+*.png
+git
+run_*.sh
+sync_to_*.sh

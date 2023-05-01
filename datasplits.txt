@@ -1,0 +1,9 @@
+head -n 50 filelists_full.txt >> first_50.txt
+
+head -n 50000 filelists_full.txt >> first_50k.txt
+head -n 90000 filelists_full.txt | tail -n 40000 >> next_40k.txt
+head -n 130000 filelists_full.txt | tail -n 40000 >> next_next_40k.txt
+
+head -n 10000 ../filelists_full.txt >> first_10k.txt
+head -n 20000 ../filelists_full.txt | tail -n 10000 >> next_10k.txt
+head -n 30000 ../filelists_full.txt | tail -n 10000 >> next_next_10k.txt
