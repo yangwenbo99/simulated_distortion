@@ -9,6 +9,7 @@ import numpy as np
 from PIL import Image, ImageOps, ImageFilter
 import random
 import cv2
+import kornia
 
 def degradation_simulated(
         img: np.ndarray, 
@@ -17,13 +18,21 @@ def degradation_simulated(
         motion_blur_prob=0.5, 
         exposure_prob=0.2, 
         gaussian_noise_prob=0.4, 
-        sensor_gaussian_exponential_beta=0.03,
         flicker_noise_prob=0.3, 
         override_jpeg_quality=-1,
-        sf=2): 
+        sf=2,
+        max_focus_blur_radius=30, 
+        max_motion_blur_kernel_size=20, 
+        max_exposure_scale_change=0.2, 
+        sensor_gaussian_exponential_beta=0.03,
+        min_jpeg_quality=30,
+        max_jpeg_quality=97,
+        ): 
     '''
     @param img: float type image
     @param sf: the ratio of downsampling and upsampling (not implemented yet)
+    @param max_motion_blur_kernel_size: max size of (half) of the motion blur kernel
+    @param sensor_gaussian_exponential_beta: mean of Gaussian noise strength.
     '''
     # Make sure img has BGR colour
     if img.shape[-1] == 1 and img.ndim == 2:
@@ -44,7 +53,7 @@ def degradation_simulated(
         parameters['focus'] = None
     else: 
         kernel_size = np.random.choice([21, 31, 41])
-        radius = random.uniform(0, 30) 
+        radius = random.uniform(0, max_focus_blur_radius) 
         img = cv2.GaussianBlur(img, (kernel_size, kernel_size), radius)
         parameters['focus'] = {
                 'method': 'gaussian', 
@@ -57,11 +66,11 @@ def degradation_simulated(
         parameters['motion'] = None
     else: 
         angle = np.random.randint(0, 360)
-        kernel_size = np.random.randint(0, 20)
+        kernel_size = np.random.randint(1, max_motion_blur_kernel_size)
         kernel_size = kernel_size * 2 + 1
         direction = random.uniform(-1, 1) 
         motion_blur = kornia.filters.MotionBlur(kernel_size, angle, direction, border_type='reflect')
-        img_tensor = kornia.image_to_tensor(img, keep_dim=False)
+        img_tensor = kornia.image_to_tensor(img, keepdim=False)
         img_tensor = motion_blur(img_tensor)
         img = kornia.tensor_to_image(img_tensor)
         parameters['motion'] = {
@@ -75,7 +84,8 @@ def degradation_simulated(
     if random.random() > exposure_prob: 
         parameters['exposure'] = None
     else: 
-        alpha = np.random.uniform(0.8, 1.2)  # scale 
+        alpha = np.random.uniform(1 - max_exposure_scale_change,
+                                  1 + max_exposure_scale_change)  # scale 
         margin = (1 - alpha) / 2 
         beta = margin + margin * random.uniform(-1, 1) # offset 
         img = img * alpha + beta
@@ -119,7 +129,7 @@ def degradation_simulated(
             }
 
     # 5. add JPEG distortion
-    quality = np.random.randint(30, 97)
+    quality = np.random.randint(min_jpeg_quality, max_jpeg_quality)
     if override_jpeg_quality > 0: 
         quality = override_jpeg_quality
     parameters['jpeg'] = {

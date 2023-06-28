@@ -1,4 +1,4 @@
-#!/bin/python3 
+#!/bin/env python3 
 ''' main.py add distortions to a directory of images
 Probably should use a multi-process implementation....
 '''
@@ -35,6 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', type=str, required=True, help='directory to output distorted image')
     parser.add_argument('-r', '--repeat', type=int, default=3, help='repetition for each image')
     parser.add_argument('-c', '--config', type=str, default='', help='config file')
+    
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -54,7 +55,9 @@ if __name__ == "__main__":
     else:
         input_filelist = list(sorted(input_path.glob('*')))
 
-    imgs_params = Parallel(n_jobs=-1)(delayed(simulate_distortion)(input_file_path, output_path, args, config) for input_file_path in input_filelist)
+    imgs_params = Parallel(n_jobs=-1)(delayed(simulate_distortion)(
+        input_file_path, output_path, args, config
+        ) for input_file_path in input_filelist)
 
     with open(output_path / 'res.json', 'w') as f: 
         json.dump(imgs_params, f)
