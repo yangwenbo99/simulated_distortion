@@ -79,7 +79,7 @@ if __name__ == "__main__":
 
     # Now, do a 80/20 split of the generated csv for trainig and testing
     # if the two arguments are supplied
-    total_len = len(data) 
+    total_len = len(data) * len(parametergs)
     if args.output_train and args.output_test:
         with open(args.output, 'r') as f:
             reader = csv.DictReader(f)
