@@ -1,7 +1,7 @@
-./main.py  -i /mnt/data/datasets/768/ -o /mnt/data/datasets/wm_simulated/distorted_less_challenging -r 3 --input_filelist /mnt/data/datasets/wm_simulated/filelist_50k.txt --img_path_rel -c ./config_less_challenging.json
+#- ./main.py  -i /mnt/data/datasets/768/ -o /mnt/data/datasets/wm_simulated/distorted_less_challenging -r 3 --input_filelist /mnt/data/datasets/wm_simulated/filelist_50k.txt --img_path_rel -c ./config_less_challenging.json
 
 # Call json_to_csv.py to convert the json file to csv files, including traing.csv and test.csv
-python json_to_csv.py \
+#- python json_to_csv.py \
 	#- -i /mnt/data/datasets/wm_simulated/distorted_less_challenging/res.json \
 	#- -o /mnt/data/datasets/wm_simulated/full_less_challenging.csv \
 	#- --output-train /mnt/data/datasets/wm_simulated/train_less_challenging.csv \
