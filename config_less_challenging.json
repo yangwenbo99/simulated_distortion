@@ -1,0 +1,8 @@
+{
+    "max_focus_blur_radius": 10,
+    "max_motion_blur_kernel_size": 10,
+    "max_exposure_scale_change": 0.2,
+    "sensor_gaussian_exponential_beta": 0.03,
+    "min_jpeg_quality": 20,
+    "max_jpeg_quality": 97
+}
