@@ -1,7 +1,10 @@
 from .degradations import *
 import itertools
 
-task_names = ["upsampling", "denoising", "deartifacting" ,"inpainting"]  #
+task_names = ["upsampling", "denoising", "deartifacting" ,"inpainting"]  # ORI
+# task_names = ["dembluring", "upsampling", "denoising", "deartifacting", "inpainting"]  #
+# task_names = ["dembluring", "denoising", "inpainting"]  # Modified here for testing
+# task_names = ["dembluring"]  # MODIFY HERE
 task_levels = ["XL", "L", "M", "S", "XS"]
 
 degradation_types = {
@@ -9,6 +12,7 @@ degradation_types = {
     "inpainting": MaskRandomly,
     "denoising": AddNoise,
     "deartifacting": CompressJPEG,
+    "dembluring": RandomMotionBlur,
 }
 
 degradation_levels = {
@@ -22,6 +26,7 @@ degradation_levels = {
         2: 8,
         3: 8,
         4: 8,
+        5: 8,
     },
     "inpainting": {
         "XL": 17,
@@ -33,6 +38,7 @@ degradation_levels = {
         2: 9,
         3: 9,
         4: 9,
+        5: 9,
     },
    "denoising": {
        "XL": (6,  0.64),
@@ -44,6 +50,7 @@ degradation_levels = {
        2: (24, 0.16),
        3: (24, 0.16),
        4: (24, 0.16),
+       5: (24, 0.16),
     },
     "deartifacting": {
         "XL": 6,
@@ -55,7 +62,20 @@ degradation_levels = {
         2: 12,
         3: 12,
         4: 12,
+        5: 12,
     },
+    'dembluring': {
+        "XS": (6, 200),
+        "S":  (6, 300),
+        "M":  (7, 400),
+        "L":  (8, 500),
+        "XL": (9, 600),
+        #
+        2: (4,  60),
+        3: (4,  60),
+        4: (4,  60),
+        5: (4,  60),
+    }
 }
 
 ####
@@ -106,6 +126,7 @@ def init_composed(level: int):
 
 
 full_composed_task = Task("UNAP", "composed_tasks", 4, init_composed(4), task_names)
+full_composed_task = Task("UNAPB", "composed_tasks", 5, init_composed(5), task_names) # MODIFY HERE
 
 ####
 
@@ -114,6 +135,7 @@ initials = {
     "denoising": "N",
     "deartifacting": "A",
     "inpainting": "P",
+    'dembluring': "B",
 }
 
 composed_tasks: List[Task] = []

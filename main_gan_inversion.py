@@ -80,6 +80,11 @@ if __name__ == "__main__":
     imgs_params = Parallel(n_jobs=-1)(delayed(simulate_distortion)(
         input_file_path, output_path, args, config
         ) for input_file_path in input_filelist)
+    '''
+    imgs_params = [simulate_distortion(
+        input_file_path, output_path, args, config
+        ) for input_file_path in input_filelist]
+    '''
 
     with open(output_path / 'res.json', 'w') as f: 
         json.dump(imgs_params, f)

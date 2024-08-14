@@ -11,6 +11,7 @@ import tempfile
 import random
 import cv2
 import os
+import kornia
 
 
 TMP_SAVE_FILEPATH = tempfile.mkstemp()[1]
@@ -275,6 +276,91 @@ class MaskRandomly(Degradation):
         return x * F.interpolate(
             self.mask, x.shape[-1], mode="bicubic", align_corners=False
         )
+
+    def degrade_prediction(self, x):
+        return self._true_degradation(x)
+
+
+class RandomMotionBlur(Degradation):
+    '''Adding random motion blur to regions of an image.
+    '''
+    def __init__(self, args: Tuple[int, int]):
+        super().__init__()
+        self.num_areas, self.max_length = args
+        self.areas = self._generate_areas()
+        # Make sure the strength (kernel size) is odd
+        self.strengths = [random.randint(1, 20) * 2 + 1 for _ in range(self.num_areas)]
+
+    def _generate_areas(self):
+        image_height = config.resolution
+        image_width = config.resolution
+
+        areas = []
+        for _ in range(self.num_areas):
+            width = random.randint(40, self.max_length)
+            height = random.randint(40, self.max_length)
+            x_start = random.randint(0, image_width - width)
+            y_start = random.randint(0, image_height - height)
+            angle = random.randint(0, 180)
+            areas.append((x_start, y_start, width, height, angle))
+        return areas
+
+    def _true_degradation(self, x):
+        assert x.shape[0] == 1, "Batching not yet supported"
+        x_ori_size = x.shape[2]
+        if x.shape[2] != 1024:
+            # Upsample the image to 1024x1024
+            x = F.interpolate(x, size=[1024, 1024], mode="area")
+        result = x.clone()
+        for area, strength in zip(self.areas, self.strengths):
+            x_start, y_start, width, height, angle = area
+            padding_size = strength // 2 + 1
+            # Extend the area for the operation
+            x_start_padded = max(0, x_start - padding_size)
+            y_start_padded = max(0, y_start - padding_size)
+            l_padding = x_start - x_start_padded
+            t_padding = y_start - y_start_padded
+            assert l_padding >= 0 and t_padding >= 0
+            width_padded = width + 2 * padding_size
+            height_padded = height + 2 * padding_size
+            # Ensure the padded area does not exceed image dimensions
+            width_padded = min(width_padded, x.shape[3] - x_start_padded)
+            height_padded = min(height_padded, x.shape[2] - y_start_padded)
+            assert width_padded >= width and height_padded >= height
+            # Extract the area with reflexive padding
+            padded_area = result[:, :, y_start_padded:y_start_padded+height_padded, x_start_padded:x_start_padded+width_padded]
+            assert padded_area.shape[2] == height_padded and padded_area.shape[3] == width_padded, \
+                    f"padded_area.shape: {padded_area.shape}, height_padded: {height_padded}, width_padded: {width_padded} " \
+                    f"y_start_padded: {y_start_padded}, x_start_padded: {x_start_padded}, height: {height}, width: {width} " \
+                    f"x_ori_size: {x_ori_size}, x.shape: {x.shape}"
+            # kornia.geometry.transform.pad(
+                # [padding_size]*4, 
+                # mode='reflect'
+            # )
+            # Define the motion blur direction and kernel size
+            direction = torch.tensor([float(angle)]).to(x.device)
+            kernel_size = strength
+            # Apply motion blur on the padded area
+            blurred_padded_area = kornia.filters.motion_blur(
+                padded_area,
+                kernel_size=kernel_size,
+                angle=direction,
+                direction=0.0, 
+                border_type='reflect'
+            )
+            # Crop the blurred area back to its original size
+            cropped_blurred_area = blurred_padded_area[
+                :, 
+                :, 
+                t_padding:t_padding+height, 
+                l_padding:l_padding+width
+            ]
+            # Replace the original area with the blurred area
+            result[:, :, y_start:y_start+height, x_start:x_start+width] = cropped_blurred_area
+        if x_ori_size != 1024:
+            # Downsample the image back to its original size
+            result = F.interpolate(result, size=[x_ori_size, x_ori_size], mode="area")
+        return result
 
     def degrade_prediction(self, x):
         return self._true_degradation(x)
