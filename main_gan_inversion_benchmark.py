@@ -19,6 +19,7 @@ import argparse
 import json
 from pathlib import Path
 from typing import List, Dict
+import random
 
 
 import cv2
@@ -45,6 +46,7 @@ def init_tasks():
     _TASKS['P'] = benchmark.get_task('inpainting', 2)
     _TASKS['N'] = benchmark.get_task('denoising', 2)
     _TASKS['A'] = benchmark.get_task('deartifacting', 2)
+    _TASKS['ASF'] = benchmark.get_task('deartifacting', 'L')
     _TASKS['NA'] = benchmark.Task(
             'NA',
             "composed_tasks",
@@ -154,20 +156,29 @@ def derange(l: list):
         j = np.random.randint(0, i)
         l[i], l[j] = l[j], l[i]
 
-def get_shuffled_lists(l: list):
+def get_shuffled_lists(l: list, num_images: int = -1):
     '''Return a derangement of a list
     '''
     # Why do we need a fancy algorithm.... we can just do whatever it takes...
+    if 0 < num_images < len(l):
+        l = l.copy()
+        random.shuffle(l)
+        l3 = l[:num_images]
+    elif num_images > len(l):
+        raise ValueError('num_images must be less than or equal to the length of the list')
+    else:
+        # num_images == len(l) or not supplied
+        l3 = l
     l1 = []
     l2 = []
-    for i, x in enumerate(l):
+    for i, x in enumerate(l3):
         while ((j := np.random.randint(0, len(l))) == i):
             pass
         l1.append(l[j])
         while ((k := np.random.randint(0, len(l))) == i or k == j):
             pass
         l2.append(l[k])
-    return l1, l2, l
+    return l1, l2, l3
 
 
 
@@ -180,6 +191,7 @@ if __name__ == "__main__":
     parser.add_argument('-o', '--output', type=str, required=True, help='directory to output distorted image')
     parser.add_argument('-c', '--config', type=str, default='', help='config file')  # If it ain't broke, don't fix it
     parser.add_argument('-n', '--n_jobs', type=int, default=-1, help='number of jobs to run in parallel')
+    parser.add_argument('-N', '--n_images', type=int, default=-1, help='number of images to generate')
 
     args = parser.parse_args()
 
@@ -210,7 +222,8 @@ if __name__ == "__main__":
     input_filelist_1 = input_filelist.copy()
     # OK, let's implement Sattolo's algorithm
     # derange(input_filelist_1)
-    input_filelist_1, input_filelist_2, input_filelist_3 = get_shuffled_lists(input_filelist)
+    input_filelist_1, input_filelist_2, input_filelist_3 = get_shuffled_lists(input_filelist, args.n_images)
+    assert len(input_filelist_1) == args.n_images
 
 
     imgs_params = Parallel(n_jobs=args.n_jobs)(delayed(simulate_distortion)(
